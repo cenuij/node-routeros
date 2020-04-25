@@ -1,6 +1,6 @@
 const RouterOSAPI = require('../dist').RouterOSAPI;
 const chai = require('chai');
-const config = require('./config.json');
+const config = require('./config');
 
 const should = chai.should();
 const expect = chai.expect;
@@ -8,7 +8,7 @@ const expect = chai.expect;
 let conn;
 
 describe('RosApiOperations', () => {
-    before('should stablish connection and save api object', done => {
+    before('should stablish connection and save api object', (done) => {
         conn = new RouterOSAPI({
             host: config.host,
             user: config.user,
@@ -19,41 +19,39 @@ describe('RosApiOperations', () => {
             .then(() => {
                 done();
             })
-            .catch(err => {
+            .catch((err) => {
                 done(err);
             });
     });
 
-    it('should get all interfaces from /interface', done => {
+    it('should get all interfaces from /interface', (done) => {
         conn.write(['/interface/print'])
-            .then(interfaces => {
+            .then((interfaces) => {
                 interfaces.length.should.be.above(0);
                 done();
             })
-            .catch(err => {
+            .catch((err) => {
                 done(err);
             });
     });
 
-    it('should get only id and name from /interface', done => {
+    it('should get only id and name from /interface', (done) => {
         conn.write(['/interface/print', '=.proplist=.id,name'])
-            .then(interfaces => {
+            .then((interfaces) => {
                 expect(interfaces[0]).to.have.a.property('.id');
                 expect(interfaces[0]).to.have.a.property('name');
                 expect(interfaces[0]).to.not.have.a.property('type');
                 done();
             })
-            .catch(err => {
+            .catch((err) => {
                 done(err);
             });
     });
 
-    it('should get a single user using the writeStream command', done => {
+    it('should get a single user using the writeStream command', (done) => {
         const chann = conn.writeStream(['/user/print', '?name=admin']);
-        chann.on('data', data => {
-            expect(data)
-                .to.have.a.property('name')
-                .and.be.equal('admin');
+        chann.on('data', (data) => {
+            expect(data).to.have.a.property('name').and.be.equal('admin');
         });
 
         let gotDone = false;
@@ -74,26 +72,31 @@ describe('RosApiOperations', () => {
         });
     });
 
-    it('should throw a trap using the writeStream command', done => {
+    it('should throw a trap using the writeStream command', (done) => {
         const chann = conn.writeStream('somethingthatdoesntexist');
 
         let gotData = 'gotnodata';
 
-        chann.on('data', data => {
+        chann.on('data', (data) => {
             gotData = data;
         });
 
         let gotDone = false;
         let gotTrapped = false;
+        let gotError = false;
         let theTrap = {};
 
         chann.once('done', () => {
             gotDone = true;
         });
 
-        chann.once('trap', trap => {
+        chann.once('trap', (trap) => {
             theTrap = trap;
             gotTrapped = true;
+        });
+
+        chann.once('error', (trap) => {
+            gotError = true;
         });
 
         chann.once('close', () => {
@@ -103,11 +106,12 @@ describe('RosApiOperations', () => {
                 .and.be.equal('no such command prefix');
             expect(gotDone).to.be.equal(false);
             expect(gotTrapped).to.be.equal(true);
+            expect(gotError).to.be.equal(true);
             done();
         });
     });
 
-    it('should stop streaming with writeStream after 5 seconds', function(done) {
+    it('should stop streaming with writeStream after 5 seconds', function (done) {
         this.timeout(7000);
 
         const chann = conn.writeStream('/ip/address/listen');
@@ -117,7 +121,7 @@ describe('RosApiOperations', () => {
 
         let gotData = 'gotnodata';
 
-        chann.on('data', data => {
+        chann.on('data', (data) => {
             gotData = 'gotsomedata';
         });
 
@@ -141,14 +145,14 @@ describe('RosApiOperations', () => {
         }, 5000);
     });
 
-    after('should disconnect', done => {
+    after('should disconnect', (done) => {
         this.timeout = 5000;
 
         conn.close()
             .then(() => {
                 done();
             })
-            .catch(err => {
+            .catch((err) => {
                 done(err);
             });
     });
